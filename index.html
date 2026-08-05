@@ -292,6 +292,8 @@ body[data-size="2"] .ctl.nitro{width:76px;height:76px;font-size:29px}
     <div class="setRow"><label>TOP SPEED</label>
       <div class="rowFlex"><input type="range" id="setSpeed" min="100" max="400" step="10"><span class="valBadge" id="setSpeedVal">220</span></div>
       <label class="chk"><input type="checkbox" id="setInf"> Infinite speed &#8734;</label></div>
+    <div class="setRow"><label>TRACK WIDTH</label>
+      <div class="rowFlex"><input type="range" id="setTrackW" min="8" max="30" step="1"><span class="valBadge" id="setTrackWVal">13</span></div></div>
     <div class="setRow"><label>STEERING SENSITIVITY</label>
       <div class="rowFlex"><input type="range" id="setSens" min="0.6" max="1.6" step="0.05"><span class="valBadge" id="setSensVal">1.00</span></div></div>
     <div class="setRow"><label>BUTTON SIZE</label>
@@ -321,6 +323,7 @@ body[data-size="2"] .ctl.nitro{width:76px;height:76px;font-size:29px}
       <button class="bigBtn" id="againBtn">RACE AGAIN</button>
       <button class="bigBtn ghost" id="changeBtn">SETUP</button>
     </div>
+    <button class="bigBtn ghost" id="clearCacheBtn" style="margin-top:18px;border-color:rgba(255,90,80,.5);color:#ff9a8d">&#128465; CLEAR ALL CACHE</button>
   </div>
 </div>
 
@@ -363,7 +366,8 @@ async function idbGet(k){const db=await idb();return new Promise((res,rej)=>{con
 async function idbDel(k){const db=await idb();return new Promise(res=>{const tx=db.transaction('files','readwrite');tx.objectStore('files').delete(k);tx.oncomplete=res;});}
 let toastT;function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
 
-let settings=Object.assign({topSpeed:220,inf:false,sens:1,btnSize:1,padOp:1,haptics:true,sound:true},loadJSON('apex_settings',{}));
+let settings=Object.assign({topSpeed:220,inf:false,sens:1,btnSize:1,padOp:1,haptics:true,sound:true,trackW:13},loadJSON('apex_settings',{}));
+HW=settings.trackW||13;
 let carCfgs=loadJSON('apex_carCfg',{});
 let carMetas=loadJSON('apex_carMetas',[]);
 let selCar=loadJSON('apex_selCar','builtin');
@@ -417,7 +421,7 @@ const clouds=[];
 }
 
 /* ================= track system ================= */
-const HW=13,TOTAL_LAPS=3;
+let HW=13,TOTAL_LAPS=3;
 const trackGroup=new THREE.Group();scene.add(trackGroup);
 const sceneryGroup=new THREE.Group();scene.add(sceneryGroup);
 let trackPts=[],trackTan=[],trackNrm=[],N=0,cps=[];
@@ -489,6 +493,14 @@ function buildTrack(ctrl){
   cps=[0.25,0.5,0.75].map(f=>Math.round(f*N));
 }
 function buildBuiltin(){buildTrack(genBuiltinCtrl());trackMode='builtin';trackLabel='Apex Circuit';}
+
+/* rebuild track geometry with new width */
+function rebuildTrackWidth(){
+  if(trackPts.length===0)return;
+  const ctrl=trackPts.map(p=>new THREE.Vector3(p.x,0,p.z));
+  buildTrack(ctrl);
+  rebuildScenery('lap');
+}
 
 /* scenery (trees) rebuilt per track */
 function rebuildScenery(mode){
@@ -663,6 +675,8 @@ let state='menu'; // menu|garage|record|countdown|racing|finished
 let lapDone=0,nextCp=0,progress=0,progPrev=0,lastIdx=0;
 let tTotal0=0,tLap0=0,finalTotal=0,sessionBest=null,storedBest=null;
 let boostMeter=100,boosting=false,wasBoost=false,topKmh=0,recT0=0,shoulder=false;
+// bots
+const botList=[];
 const UPv=new THREE.Vector3(0,1,0),lookPt=new THREE.Vector3(0,2,0);
 const camDir=new THREE.Vector3(),desCam=new THREE.Vector3(),tmpV=new THREE.Vector3(),tmpN=new THREE.Vector3(),tmpF=new THREE.Vector3(),tmpR=new THREE.Vector3();
 const mBasis=new THREE.Matrix3(),qTarget=new THREE.Quaternion();
@@ -691,6 +705,26 @@ function popCount(){const c=$('countdown');c.classList.remove('pop');void c.offs
 function startRace(){
   $('menu').classList.add('hidden');$('finishOv').classList.add('hidden');
   lapDone=0;nextCp=0;progress=0;lastIdx=0;boostMeter=100;topKmh=0;sessionBest=null;finalTotal=0;
+  // spawn bots
+  botList.length=0;
+  const numBots=freeRoam?0:3;
+  for(let i=0;i<numBots;i++){
+    const bot={
+      idx:Math.round((i/numBots)*N),
+      speed:45+Math.random()*25,
+      lap:0,
+      progress:Math.round((i/numBots)*N),
+      mesh:null
+    };
+    const col=new THREE.Color().setHSL(Math.random(),0.8,0.5);
+    const mat=new THREE.MeshStandardMaterial({color:col,metalness:0.6,roughness:0.3});
+    const msh=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.7,4),mat);
+    msh.position.set(trackPts[bot.idx].x,0.5,trackPts[bot.idx].z);
+    msh.castShadow=true;msh.receiveShadow=true;
+    scene.add(msh);
+    bot.mesh=msh;
+    botList.push(bot);
+  }
   if(freeRoam)placeAtSpawn();else placeAt(0);
   progPrev=0;
   storedBest=freeRoam?(tops.custom||null):(bests[trackMode]||null);
@@ -727,6 +761,9 @@ function onLap(now){
 }
 function exitToMenu(){
   if(freeRoam&&topKmh>0&&(tops.custom==null||topKmh>tops.custom)){tops.custom=topKmh;saveJSON('apex_top',tops);}
+  // cleanup bots
+  for(const b of botList){if(b.mesh)scene.remove(b.mesh);}
+  botList.length=0;
   state='menu';showRacingUI(false);
   $('finishOv').classList.add('hidden');$('recordUI').classList.add('hidden');
   trailLine.visible=false;startFlag.visible=false;
@@ -777,6 +814,15 @@ function physicsLap(dt){
   else if(progress>=(lapDone+1)*N){lapDone++;nextCp=0;onLap(performance.now());}
   carPos.y=0;carGroup.position.copy(carPos);carGroup.rotation.y=heading;
   stepVisuals(dt,steer,sf);
+  // update bots
+  for(const b of botList){
+    b.progress+=Math.round(b.speed*dt*3);
+    while(b.progress>=N){b.progress-=N;b.lap++;}
+    const bi=b.progress%N;
+    const bp=trackPts[bi],bt=trackTan[bi];
+    b.mesh.position.set(bp.x,0.5,bp.z);
+    b.mesh.rotation.y=Math.atan2(bt.x,bt.z);
+  }
 }
 function physicsRecord(dt){
   const{steer,sf}=stepCommon(dt);
@@ -998,10 +1044,12 @@ function syncSettingsUI(){
   $('setInf').checked=settings.inf;$('setSens').value=settings.sens;$('setSensVal').textContent=(+settings.sens).toFixed(2);
   $('setOp').value=settings.padOp;$('setOpVal').textContent=Math.round(settings.padOp*100)+'%';
   $('setHap').checked=settings.haptics;$('setSnd').checked=settings.sound;
+  $('setTrackW').value=settings.trackW||13;$('setTrackWVal').textContent=settings.trackW||13;
   document.querySelectorAll('#sizeChips button').forEach(b=>b.classList.toggle('on',+b.dataset.s===settings.btnSize));
 }
 $('setSpeed').addEventListener('input',()=>{settings.topSpeed=+$('setSpeed').value;settings.inf=false;saveJSON('apex_settings',settings);applySettings();syncSettingsUI();});
 $('setInf').addEventListener('change',()=>{settings.inf=$('setInf').checked;saveJSON('apex_settings',settings);applySettings();syncSettingsUI();});
+$('setTrackW').addEventListener('input',()=>{HW=+$('setTrackW').value;$('setTrackWVal').textContent=HW;settings.trackW=HW;saveJSON('apex_settings',settings);rebuildTrackWidth();});
 $('setSens').addEventListener('input',()=>{settings.sens=+$('setSens').value;saveJSON('apex_settings',settings);syncSettingsUI();});
 $('setOp').addEventListener('input',()=>{settings.padOp=+$('setOp').value;saveJSON('apex_settings',settings);applySettings();syncSettingsUI();});
 $('setHap').addEventListener('change',()=>{settings.haptics=$('setHap').checked;saveJSON('apex_settings',settings);});
@@ -1022,6 +1070,32 @@ $('setClose').addEventListener('click',()=>{$('settingsOv').classList.add('hidde
 $('startBtn').addEventListener('click',startRace);
 $('againBtn').addEventListener('click',()=>{$('finishOv').classList.add('hidden');startRace();});
 $('changeBtn').addEventListener('click',exitToMenu);
+$('clearCacheBtn').addEventListener('click',async()=>{
+  try{
+    await idbDel('track_custom').catch(()=>{});
+    const db=await idb();
+    const tx=db.transaction('files','readwrite');
+    const store=tx.objectStore('files');
+    const keys=[];
+    await new Promise((res,rej)=>{
+      const req=store.openCursor();
+      req.onsuccess=()=>{const c=req.result;if(c){if(c.key.startsWith('car_'))keys.push(c.key);c.continue();}else res();};
+      req.onerror=()=>rej(req.error);
+    });
+    for(const k of keys)await idbDel(k);
+    localStorage.removeItem('apex_carCfg');
+    localStorage.removeItem('apex_carMetas');
+    localStorage.removeItem('apex_selCar');
+    localStorage.removeItem('apex_best');
+    localStorage.removeItem('apex_top');
+    localStorage.removeItem('apex_track');
+    carCfgs={};carMetas=[];selCar='builtin';bests={};tops={};
+    saveJSON('apex_carCfg',carCfgs);saveJSON('apex_carMetas',carMetas);saveJSON('apex_selCar',selCar);
+    saveJSON('apex_best',bests);saveJSON('apex_top',tops);saveJSON('apex_track',{type:'builtin'});
+    toast('&#128465; All cache cleared! Reloading...');
+    setTimeout(()=>location.reload(),900);
+  }catch(e){console.warn(e);toast('Could not clear all cache.');}
+});
 $('btnMenuTop').addEventListener('click',exitToMenu);
 $('btnReset').addEventListener('click',()=>{
   if(state!=='racing')return;
@@ -1093,7 +1167,8 @@ function animate(now){
     lookPt.lerp(tmpV,k);
     if(shoulder&&Math.abs(speed)>6){camera.position.x+=(Math.random()-0.5)*0.14;camera.position.y+=(Math.random()-0.5)*0.1;}
     camera.lookAt(lookPt);
-    const fovT=62+Math.min(Math.abs(speed)/Math.max(MAXS,60),1)*14+(boosting?6:0);
+    const baseFov=62;
+    const fovT=baseFov+Math.min(Math.abs(speed)/Math.max(MAXS,60),1)*14+(boosting?6:0);
     if(Math.abs(camera.fov-fovT)>0.05){camera.fov+=(fovT-camera.fov)*Math.min(1,dt*4);camera.updateProjectionMatrix();}
   }
   updateHUD(now);
