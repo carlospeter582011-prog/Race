@@ -367,7 +367,7 @@ async function idbDel(k){const db=await idb();return new Promise(res=>{const tx=
 let toastT;function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
 
 let settings=Object.assign({topSpeed:220,inf:false,sens:1,btnSize:1,padOp:1,haptics:true,sound:true,trackW:13},loadJSON('apex_settings',{}));
-HW=settings.trackW||13;
+let HW=settings.trackW||13;
 let carCfgs=loadJSON('apex_carCfg',{});
 let carMetas=loadJSON('apex_carMetas',[]);
 let selCar=loadJSON('apex_selCar','builtin');
@@ -421,7 +421,7 @@ const clouds=[];
 }
 
 /* ================= track system ================= */
-let HW=13,TOTAL_LAPS=3;
+let HW,TOTAL_LAPS=3;HW=settings.trackW||13;
 const trackGroup=new THREE.Group();scene.add(trackGroup);
 const sceneryGroup=new THREE.Group();scene.add(sceneryGroup);
 let trackPts=[],trackTan=[],trackNrm=[],N=0,cps=[];
