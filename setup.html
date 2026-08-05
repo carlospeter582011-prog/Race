@@ -484,6 +484,7 @@
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         let worldScene, worldCamera, worldRenderer, worldModel, worldControls;
@@ -588,7 +589,11 @@
         };
 
         function loadWorldModel(data) {
+            const dracoLoader = new DRACOLoader();
+            dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+            
             const loader = new GLTFLoader();
+            loader.setDRACOLoader(dracoLoader);
             loader.parse(data, '', function(gltf) {
                 if (worldModel) {
                     worldScene.remove(worldModel);
@@ -869,7 +874,11 @@
         };
 
         function loadCarModel(data) {
+            const dracoLoader = new DRACOLoader();
+            dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+            
             const loader = new GLTFLoader();
+            loader.setDRACOLoader(dracoLoader);
             loader.parse(data, '', function(gltf) {
                 if (carModel) {
                     carScene.remove(carModel);
