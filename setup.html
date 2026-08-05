@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Race Track Setup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .step-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .step-title {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #00ffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-number {
+            background: #00ffff;
+            color: #1a1a2e;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .viewer-container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        #worldViewer, #carViewer {
+            width: 100%;
+            height: 500px;
+            background: #0a0a1a;
+            border-radius: 10px;
+            border: 2px solid #00ffff;
+        }
+
+        .controls-panel {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .control-group input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+        }
+
+        .value-display {
+            text-align: right;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+        }
+
+        .file-upload {
+            border: 2px dashed #00ffff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+
+        .file-upload:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .canvas-container {
+            position: relative;
+            margin: 20px 0;
+        }
+
+        #trackCanvas {
+            width: 100%;
+            height: 400px;
+            background: #fff;
+            border-radius: 10px;
+            border: 3px solid #00ffff;
+            cursor: crosshair;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tool-btn.active {
+            background: #00ffff;
+            color: #1a1a2e;
+        }
+
+        .tool-btn:hover {
+            background: rgba(0, 255, 255, 0.4);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #00ff88);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: rgba(0, 255, 136, 0.2);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+        }
+
+        .status-error {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .color-picker input[type="color"] {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .brush-size {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .instructions {
+            background: rgba(0, 255, 255, 0.1);
+            border-left: 4px solid #00ffff;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+
+        .orientation-marker {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #ff0000;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+            border: 2px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏁 Race Track Setup 🏁</h1>
+
+        <!-- Step 1: Upload World -->
+        <div class="step-container" id="step1">
+            <div class="step-title">
+                <span class="step-number">1</span>
+                Upload Your World
+            </div>
+            
+            <div class="file-upload" onclick="document.getElementById('worldFile').click()">
+                <input type="file" id="worldFile" accept=".glb,.gltf" onchange="handleWorldUpload(event)">
+                <p style="font-size: 1.2em;">📁 Click to upload your world (.glb or .gltf)</p>
+                <p style="color: #aaa; margin-top: 10px;">Drag and drop also works!</p>
+            </div>
+
+            <div id="worldEditor" class="hidden">
+                <div class="viewer-container">
+                    <canvas id="worldViewer"></canvas>
+                    <div class="controls-panel">
+                        <h3 style="color: #00ffff; margin-bottom: 20px;">World Orientation</h3>
+                        
+                        <div class="control-group">
+                            <label>Rotation X (Tilt)</label>
+                            <input type="range" id="worldRotX" min="-180" max="180" value="0" step="1">
+                            <div class="value-display" id="worldRotXValue">0°</div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Rotation Y (Spin)</label>
+                            <input type="range" id="worldRotY" min="-180" max="180" value="0" step="1">
+                            <div class="value-display" id="worldRotYValue">0°</div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Rotation Z (Roll)</label>
+                            <input type="range" id="worldRotZ" min="-180" max="180" value="0" step="1">
+                            <div class="value-display" id="worldRotZValue">0°</div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Scale</label>
+                            <input type="range" id="worldScale" min="0.1" max="5" value="1" step="0.1">
+                            <div class="value-display" id="worldScaleValue">1x</div>
+                        </div>
+
+                        <button class="btn" onclick="captureTopView()">📸 Capture Top View</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Draw Track -->
+        <div class="step-container hidden" id="step2">
+            <div class="step-title">
+                <span class="step-number">2</span>
+                Draw Your Race Track
+            </div>
+
+            <div class="instructions">
+                <strong>🎨 How to draw your track:</strong>
+                <ul>
+                    <li>Use the <strong>Pen Tool</strong> to draw the center line of your track</li>
+                    <li>Draw smoothly - the system will automatically smooth rough lines</li>
+                    <li>You can use <strong>Erase</strong> to remove mistakes</li>
+                    <li>Adjust <strong>Brush Size</strong> for better control</li>
+                    <li>Make sure to create a complete loop for the race track!</li>
+                </ul>
+            </div>
+
+            <div class="toolbar">
+                <button class="tool-btn active" id="penTool" onclick="selectTool('pen')">✏️ Pen</button>
+                <button class="tool-btn" id="eraseTool" onclick="selectTool('erase')">🧹 Eraser</button>
+                <button class="tool-btn" onclick="undoLastStroke()">↩️ Undo</button>
+                <button class="tool-btn" onclick="clearCanvas()">🗑️ Clear All</button>
+                <button class="tool-btn btn-success" onclick="processTrack()">✓ Process Track</button>
+            </div>
+
+            <div class="color-picker">
+                <label>Track Color:</label>
+                <input type="color" id="trackColor" value="#ff0000">
+                <div class="brush-size">
+                    <label>Brush Size:</label>
+                    <input type="range" id="brushSize" min="1" max="50" value="5">
+                    <span id="brushSizeValue">5px</span>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="trackCanvas"></canvas>
+            </div>
+
+            <div class="progress-bar hidden" id="processingBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="processStatus"></div>
+        </div>
+
+        <!-- Step 3: Upload Car -->
+        <div class="step-container hidden" id="step3">
+            <div class="step-title">
+                <span class="step-number">3</span>
+                Upload Your Car
+            </div>
+
+            <div class="file-upload" onclick="document.getElementById('carFile').click()">
+                <input type="file" id="carFile" accept=".glb,.gltf" onchange="handleCarUpload(event)">
+                <p style="font-size: 1.2em;">🚗 Click to upload your car (.glb or .gltf)</p>
+            </div>
+
+            <div id="carEditor" class="hidden">
+                <div class="viewer-container">
+                    <canvas id="carViewer"></canvas>
+                    <div class="controls-panel">
+                        <h3 style="color: #00ffff; margin-bottom: 20px;">Car Orientation</h3>
+                        
+                        <div class="control-group">
+                            <label>Rotation X</label>
+                            <input type="range" id="carRotX" min="-180" max="180" value="0" step="1">
+                            <div class="value-display" id="carRotXValue">0°</div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Rotation Y</label>
+                            <input type="range" id="carRotY" min="-180" max="180" value="0" step="1">
+                            <div class="value-display" id="carRotYValue">0°</div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Rotation Z</label>
+                            <input type="range" id="carRotZ" min="-180" max="180" value="0" step="1">
+                            <div class="value-display" id="carRotZValue">0°</div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Scale</label>
+                            <input type="range" id="carScale" min="0.1" max="3" value="1" step="0.1">
+                            <div class="value-display" id="carScaleValue">1x</div>
+                        </div>
+
+                        <h4 style="color: #00ffff; margin: 20px 0 10px;">Set Front Direction</h4>
+                        <p style="color: #aaa; font-size: 0.9em; margin-bottom: 10px;">Click on the car to mark which direction is front</p>
+                        <button class="btn" onclick="enableFrontMarker()">🎯 Mark Front</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Final Step -->
+        <div class="step-container hidden" id="step4">
+            <div class="step-title">
+                <span class="step-number">4</span>
+                Ready to Race!
+            </div>
+
+            <div id="finalStatus" class="status-message status-success">
+                ✅ Everything is set up! Your world, track, and car have been saved.
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="btn btn-success" style="font-size: 1.5em; padding: 20px 50px;" onclick="launchGame()">
+                    🏁 START RACING! 🏁
+                </button>
+            </div>
+
+            <div class="instructions">
+                <strong>🎮 Game Controls:</strong>
+                <ul>
+                    <li><strong>Arrow Keys / WASD</strong> - Drive the car</li>
+                    <li><strong>Space</strong> - Brake</li>
+                    <li><strong>C</strong> - Change camera view</li>
+                    <li><strong>R</strong> - Reset car position</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let worldScene, worldCamera, worldRenderer, worldModel, worldControls;
+        let carScene, carCamera, carRenderer, carModel, carControls;
+        let worldData = null;
+        let carData = null;
+        let trackImageData = null;
+        let trackPoints = [];
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let frontMarker = null;
+
+        // Initialize canvas for track drawing
+        const trackCanvas = document.getElementById('trackCanvas');
+        const trackCtx = trackCanvas.getContext('2d');
+        
+        function initTrackCanvas() {
+            trackCanvas.width = trackCanvas.offsetWidth;
+            trackCanvas.height = trackCanvas.offsetHeight;
+            trackCtx.fillStyle = '#ffffff';
+            trackCtx.fillRect(0, 0, trackCanvas.width, trackCanvas.height);
+        }
+
+        // World Viewer Setup
+        function initWorldViewer() {
+            const canvas = document.getElementById('worldViewer');
+            worldScene = new THREE.Scene();
+            worldScene.background = new THREE.Color(0x1a1a2e);
+
+            worldCamera = new THREE.PerspectiveCamera(75, canvas.offsetWidth / canvas.offsetHeight, 0.1, 1000);
+            worldCamera.position.set(5, 5, 5);
+
+            worldRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            worldRenderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+            worldRenderer.shadowMap.enabled = true;
+
+            worldControls = new OrbitControls(worldCamera, worldRenderer.domElement);
+            worldControls.enableDamping = true;
+
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            worldScene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            worldScene.add(directionalLight);
+
+            animateWorld();
+        }
+
+        function animateWorld() {
+            requestAnimationFrame(animateWorld);
+            worldControls.update();
+            worldRenderer.render(worldScene, worldCamera);
+        }
+
+        // Car Viewer Setup
+        function initCarViewer() {
+            const canvas = document.getElementById('carViewer');
+            carScene = new THREE.Scene();
+            carScene.background = new THREE.Color(0x1a1a2e);
+
+            carCamera = new THREE.PerspectiveCamera(75, canvas.offsetWidth / canvas.offsetHeight, 0.1, 1000);
+            carCamera.position.set(3, 3, 3);
+
+            carRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            carRenderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+            carRenderer.shadowMap.enabled = true;
+
+            carControls = new OrbitControls(carCamera, carRenderer.domElement);
+            carControls.enableDamping = true;
+
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            carScene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 3);
+            directionalLight.castShadow = true;
+            carScene.add(directionalLight);
+
+            animateCar();
+        }
+
+        function animateCar() {
+            requestAnimationFrame(animateCar);
+            carControls.update();
+            carRenderer.render(carScene, carCamera);
+        }
+
+        // Handle World Upload
+        window.handleWorldUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                loadWorldModel(e.target.result);
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        function loadWorldModel(data) {
+            const loader = new GLTFLoader();
+            loader.parse(data, '', function(gltf) {
+                if (worldModel) {
+                    worldScene.remove(worldModel);
+                }
+
+                worldModel = gltf.scene;
+                worldModel.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                });
+
+                worldScene.add(worldModel);
+
+                // Center the model
+                const box = new THREE.Box3().setFromObject(worldModel);
+                const center = box.getCenter(new THREE.Vector3());
+                worldModel.position.sub(center);
+
+                document.getElementById('worldEditor').classList.remove('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+                
+                showStatus('World loaded successfully! Adjust rotation and capture top view.', 'success');
+            }, function(error) {
+                console.error('Error loading world:', error);
+                showStatus('Error loading world. Please try another file.', 'error');
+            });
+        }
+
+        // World controls
+        ['RotX', 'RotY', 'RotZ', 'Scale'].forEach(param => {
+            const input = document.getElementById(`world${param}`);
+            const display = document.getElementById(`world${param}Value`);
+            
+            input.addEventListener('input', function() {
+                if (param === 'Scale') {
+                    display.textContent = this.value + 'x';
+                    if (worldModel) {
+                        worldModel.scale.setScalar(this.value);
+                    }
+                } else {
+                    display.textContent = this.value + '°';
+                    updateWorldRotation();
+                }
+            });
+        });
+
+        function updateWorldRotation() {
+            if (!worldModel) return;
+            
+            const x = THREE.MathUtils.degToRad(document.getElementById('worldRotX').value);
+            const y = THREE.MathUtils.degToRad(document.getElementById('worldRotY').value);
+            const z = THREE.MathUtils.degToRad(document.getElementById('worldRotZ').value);
+            
+            worldModel.rotation.set(x, y, z);
+        }
+
+        // Capture top view
+        window.captureTopView = function() {
+            if (!worldModel) return;
+
+            // Position camera directly above
+            const box = new THREE.Box3().setFromObject(worldModel);
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.z);
+
+            worldCamera.position.set(0, maxDim * 2, 0);
+            worldCamera.lookAt(0, 0, 0);
+            worldControls.enabled = false;
+
+            setTimeout(() => {
+                worldRenderer.render(worldScene, worldCamera);
+                
+                // Capture as image
+                const imageData = worldRenderer.domElement.toDataURL('image/png');
+                trackImageData = imageData;
+
+                // Set as canvas background
+                const img = new Image();
+                img.onload = function() {
+                    trackCtx.drawImage(img, 0, 0, trackCanvas.width, trackCanvas.height);
+                };
+                img.src = imageData;
+
+                document.getElementById('step2').classList.remove('hidden');
+                document.getElementById('step3').classList.remove('hidden');
+                
+                showStatus('Top view captured! Now draw your race track.', 'success');
+            }, 100);
+        };
+
+        // Track drawing
+        window.selectTool = function(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tool + 'Tool').classList.add('active');
+        };
+
+        window.undoLastStroke = function() {
+            // Reload the background image
+            if (trackImageData) {
+                const img = new Image();
+                img.onload = function() {
+                    trackCtx.clearRect(0, 0, trackCanvas.width, trackCanvas.height);
+                    trackCtx.drawImage(img, 0, 0, trackCanvas.width, trackCanvas.height);
+                    
+                    // Redraw all points except last
+                    if (trackPoints.length > 0) {
+                        trackPoints.pop();
+                        redrawTrack();
+                    }
+                };
+                img.src = trackImageData;
+            }
+        };
+
+        window.clearCanvas = function() {
+            if (trackImageData) {
+                const img = new Image();
+                img.onload = function() {
+                    trackCtx.clearRect(0, 0, trackCanvas.width, trackCanvas.height);
+                    trackCtx.drawImage(img, 0, 0, trackCanvas.width, trackCanvas.height);
+                    trackPoints = [];
+                };
+                img.src = trackImageData;
+            }
+        };
+
+        function redrawTrack() {
+            const color = document.getElementById('trackColor').value;
+            const brushSize = parseInt(document.getElementById('brushSize').value);
+            
+            trackCtx.lineCap = 'round';
+            trackCtx.lineJoin = 'round';
+            
+            if (trackPoints.length < 2) return;
+
+            // Smooth the track
+            const smoothedPoints = smoothTrack(trackPoints);
+            
+            trackCtx.beginPath();
+            trackCtx.strokeStyle = color;
+            trackCtx.lineWidth = brushSize;
+            trackCtx.moveTo(smoothedPoints[0].x, smoothedPoints[0].y);
+
+            for (let i = 1; i < smoothedPoints.length; i++) {
+                trackCtx.lineTo(smoothedPoints[i].x, smoothedPoints[i].y);
+            }
+            trackCtx.stroke();
+        }
+
+        function smoothTrack(points, iterations = 3) {
+            let smoothed = [...points];
+            
+            for (let iter = 0; iter < iterations; iter++) {
+                const newPoints = [smoothed[0]];
+                
+                for (let i = 1; i < smoothed.length - 1; i++) {
+                    const prev = smoothed[i - 1];
+                    const curr = smoothed[i];
+                    const next = smoothed[i + 1];
+                    
+                    // Chaikin's algorithm
+                    const q = {
+                        x: (curr.x * 3 + prev.x) / 4,
+                        y: (curr.y * 3 + prev.y) / 4
+                    };
+                    const r = {
+                        x: (curr.x * 3 + next.x) / 4,
+                        y: (curr.y * 3 + next.y) / 4
+                    };
+                    
+                    newPoints.push(q, r);
+                }
+                
+                newPoints.push(smoothed[smoothed.length - 1]);
+                smoothed = newPoints;
+            }
+            
+            return smoothed;
+        }
+
+        // Canvas drawing events
+        trackCanvas.addEventListener('mousedown', startDrawing);
+        trackCanvas.addEventListener('mousemove', draw);
+        trackCanvas.addEventListener('mouseup', stopDrawing);
+        trackCanvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch support
+        trackCanvas.addEventListener('touchstart', handleTouch);
+        trackCanvas.addEventListener('touchmove', handleTouch);
+        trackCanvas.addEventListener('touchend', stopDrawing);
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = trackCanvas.getBoundingClientRect();
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            trackCanvas.dispatchEvent(mouseEvent);
+        }
+
+        function startDrawing(e) {
+            if (currentTool === 'erase') return;
+            
+            isDrawing = true;
+            const rect = trackCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            trackPoints = [{x, y}];
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = trackCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            trackPoints.push({x, y});
+            
+            redrawTrack();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        // Brush size
+        document.getElementById('brushSize').addEventListener('input', function() {
+            document.getElementById('brushSizeValue').textContent = this.value + 'px';
+        });
+
+        // Process track
+        window.processTrack = function() {
+            if (trackPoints.length < 10) {
+                showStatus('Please draw a longer track!', 'error');
+                return;
+            }
+
+            document.getElementById('processingBar').classList.remove('hidden');
+            const progressFill = document.getElementById('progressFill');
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                progressFill.style.width = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    
+                    // Smooth and save track data
+                    const smoothedPoints = smoothTrack(trackPoints, 5);
+                    localStorage.setItem('raceTrack_points', JSON.stringify(smoothedPoints));
+                    localStorage.setItem('raceTrack_image', trackImageData);
+                    
+                    document.getElementById('step3').classList.remove('hidden');
+                    document.getElementById('step4').classList.remove('hidden');
+                    
+                    showStatus('Track processed successfully! Now upload your car.', 'success');
+                    document.getElementById('processingBar').classList.add('hidden');
+                }
+            }, 100);
+        };
+
+        // Car handling
+        window.handleCarUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                loadCarModel(e.target.result);
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        function loadCarModel(data) {
+            const loader = new GLTFLoader();
+            loader.parse(data, '', function(gltf) {
+                if (carModel) {
+                    carScene.remove(carModel);
+                }
+
+                carModel = gltf.scene;
+                carModel.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                });
+
+                carScene.add(carModel);
+
+                // Center the model
+                const box = new THREE.Box3().setFromObject(carModel);
+                const center = box.getCenter(new THREE.Vector3());
+                carModel.position.sub(center);
+
+                document.getElementById('carEditor').classList.remove('hidden');
+                document.getElementById('step4').classList.remove('hidden');
+                
+                showStatus('Car loaded! Adjust rotation and mark the front direction.', 'success');
+            }, function(error) {
+                console.error('Error loading car:', error);
+                showStatus('Error loading car. Please try another file.', 'error');
+            });
+        }
+
+        // Car controls
+        ['RotX', 'RotY', 'RotZ', 'Scale'].forEach(param => {
+            const input = document.getElementById(`car${param}`);
+            const display = document.getElementById(`car${param}Value`);
+            
+            input.addEventListener('input', function() {
+                if (param === 'Scale') {
+                    display.textContent = this.value + 'x';
+                    if (carModel) {
+                        carModel.scale.setScalar(this.value);
+                    }
+                } else {
+                    display.textContent = this.value + '°';
+                    updateCarRotation();
+                }
+            });
+        });
+
+        function updateCarRotation() {
+            if (!carModel) return;
+            
+            const x = THREE.MathUtils.degToRad(document.getElementById('carRotX').value);
+            const y = THREE.MathUtils.degToRad(document.getElementById('carRotY').value);
+            const z = THREE.MathUtils.degToRad(document.getElementById('carRotZ').value);
+            
+            carModel.rotation.set(x, y, z);
+        }
+
+        window.enableFrontMarker = function() {
+            if (!carModel) return;
+            
+            const message = 'Click on the car viewer to mark the front direction';
+            showStatus(message, 'success');
+            
+            const onClick = function(event) {
+                const rect = carRenderer.domElement.getBoundingClientRect();
+                const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                const mouse = new THREE.Vector2(x, y);
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(mouse, carCamera);
+                
+                const intersects = raycaster.intersectObjects(carModel.children, true);
+                
+                if (intersects.length > 0) {
+                    const point = intersects[0].point;
+                    
+                    // Calculate front direction based on click point
+                    const frontVector = new THREE.Vector3(0, 0, 1);
+                    frontVector.applyQuaternion(carModel.quaternion);
+                    
+                    localStorage.setItem('raceCar_front', JSON.stringify({
+                        x: frontVector.x,
+                        y: frontVector.y,
+                        z: frontVector.z
+                    }));
+                    
+                    showStatus('Front direction marked!', 'success');
+                    carRenderer.domElement.removeEventListener('click', onClick);
+                }
+            };
+            
+            carRenderer.domElement.addEventListener('click', onClick);
+        };
+
+        // Save car data
+        function saveCarData() {
+            const carConfig = {
+                rotX: parseFloat(document.getElementById('carRotX').value),
+                rotY: parseFloat(document.getElementById('carRotY').value),
+                rotZ: parseFloat(document.getElementById('carRotZ').value),
+                scale: parseFloat(document.getElementById('carScale').value)
+            };
+            
+            localStorage.setItem('raceCar_config', JSON.stringify(carConfig));
+        }
+
+        // Utility functions
+        function showStatus(message, type) {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.textContent = message;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(statusDiv, container.firstChild.nextSibling);
+            
+            setTimeout(() => {
+                statusDiv.remove();
+            }, 3000);
+        }
+
+        window.launchGame = function() {
+            saveCarData();
+            window.location.href = 'index.html';
+        };
+
+        // Initialize viewers on page load
+        window.addEventListener('load', function() {
+            initWorldViewer();
+            initCarViewer();
+            initTrackCanvas();
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (worldCamera && worldRenderer) {
+                worldCamera.aspect = document.getElementById('worldViewer').offsetWidth / document.getElementById('worldViewer').offsetHeight;
+                worldCamera.updateProjectionMatrix();
+                worldRenderer.setSize(document.getElementById('worldViewer').offsetWidth, document.getElementById('worldViewer').offsetHeight);
+            }
+            
+            if (carCamera && carRenderer) {
+                carCamera.aspect = document.getElementById('carViewer').offsetWidth / document.getElementById('carViewer').offsetHeight;
+                carCamera.updateProjectionMatrix();
+                carRenderer.setSize(document.getElementById('carViewer').offsetWidth, document.getElementById('carViewer').offsetHeight);
+            }
+            
+            initTrackCanvas();
+        });
+    </script>
+</body>
+</html>
